@@ -2,9 +2,10 @@
   "name": "my-json-server",
   "version": "1.0.0",
   "scripts": {
-    "start": "json-server --watch db.json --port 10000 --host 0.0.0.0"
+    "start": "node server.js"
   },
   "dependencies": {
-    "json-server": "^0.17.4"
+    "json-server": "^0.17.4",
+    "nodemailer": "^8.0.7"
   }
 }
