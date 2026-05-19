@@ -1,25 +1,17 @@
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
 
-const transporter = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: 587,
-    secure: false, 
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-    },
-    tls: {
-        rejectUnauthorized: false 
-    }
-});
+// Инициализируем Resend с помощью ключа из переменных окружения
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendMail = (subject, text) => {
-    transporter.sendMail({
-        from: `"Система Безопасности" <${process.env.SMTP_USER}>`,
-        to: 'poststudent@students.local', 
-        subject,
-        text
-    }).catch(err => console.error('Ошибка отправки:', err));
+    resend.emails.send({
+        from: 'onboarding@resend.dev', // Дефолтный отправитель для бесплатных аккаунтов
+        to: 'apparat.inc45@gmail.com', // Укажи почту, на которую регистрировал Resend!
+        subject: subject,
+        text: text
+    })
+    .then(() => console.log('Письмо успешно отправлено через HTTP API (Resend)!'))
+    .catch(err => console.error('Ошибка отправки через Resend:', err));
 };
 
 module.exports = { sendMail };
