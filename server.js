@@ -98,4 +98,7 @@ app.delete('/incidents/:id', async (req, res) => {
 });
 
 const PORT = process.env.PORT || 10000;
+app.get('/ping', (req, res) => {
+    res.json({ message: "Мой кастомный сервер действительно работает!" });
+});
 app.listen(PORT, () => console.log(`Express server running on port ${PORT}`));
