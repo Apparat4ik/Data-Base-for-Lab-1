@@ -27,9 +27,7 @@ async function getDbData() {
         const data = fs.readFileSync(tempFilePath, "utf8");
         return JSON.parse(data);
     } catch (err) {
-        console.error("Ошибка чтения с FTP:", err);
-        // Если файла еще нет, отдаем пустую структуру, чтобы сайт не падал
-        return { incidents: [] };
+        throw err;
     } finally {
         client.close();
     }
