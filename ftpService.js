@@ -10,7 +10,7 @@ const ftpConfig = {
 };
 
 
-const FTP_DIR = "ftp/files"; 
+const FTP_DIR = "files"; 
 
 const tempFilePath = path.join('/tmp', 'db.json'); 
 
