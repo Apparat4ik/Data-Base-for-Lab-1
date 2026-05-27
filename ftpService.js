@@ -8,7 +8,7 @@ const ftpConfig = {
     secure: false
 };
 
-const FTP_DIR = "/ftp/files"; 
+const FTP_DIR = "/files"; 
 
 async function getDbData() {
     const client = new Client();
