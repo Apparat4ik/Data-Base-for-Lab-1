@@ -14,6 +14,7 @@ async function getDbData() {
     const client = new Client();
     try {
         await client.access(ftpConfig);
+        await client.cd("/files");
         let data = "";
         
         // Создаем поток для записи в переменную
@@ -24,7 +25,7 @@ async function getDbData() {
             }
         });
 
-        await client.downloadTo(writable, "files/db.json"); 
+        await client.downloadTo(writable, "db.json"); 
         return JSON.parse(data);
     } catch (err) {
         console.error("Ошибка чтения с FTP:", err);
@@ -39,11 +40,12 @@ async function saveDbData(dataObject) {
     const client = new Client();
     try {
         await client.access(ftpConfig);
+        await client.cd("/files");
         
         const jsonString = JSON.stringify(dataObject, null, 2);
         const readable = Readable.from([jsonString]);
 
-        await client.uploadFrom(readable, "files/db.json");
+        await client.uploadFrom(readable, "db.json");
     } catch (err) {
         console.error("Ошибка записи на FTP:", err);
         throw err;
