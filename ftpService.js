@@ -1,6 +1,7 @@
 const { Client } = require("basic-ftp");
 const fs = require("fs");
 const path = require("path");
+const crypto = require("crypto");
 
 const ftpConfig = {
     host: process.env.FTP_HOST,
@@ -9,13 +10,13 @@ const ftpConfig = {
     secure: false
 };
 
-// Задаем жесткий абсолютный путь, как он виден в FileZilla
 const REMOTE_FILE_PATH = "/files/db.json"; 
-const tempFilePath = path.join('/tmp', 'db.json'); 
 
 async function getDbData() {
     const client = new Client();
-    client.ftp.verbose = true; 
+    // Генерируем уникальное имя файла для каждого запроса
+    const tempFilePath = path.join('/tmp', `db_${crypto.randomUUID()}.json`); 
+    
     try {
         await client.access(ftpConfig);
         await client.downloadTo(tempFilePath, REMOTE_FILE_PATH);
@@ -23,16 +24,19 @@ async function getDbData() {
         const data = fs.readFileSync(tempFilePath, "utf8");
         return JSON.parse(data);
     } catch (err) {
-        console.error("❌ Ошибка чтения с FTP:", err);
-        throw err;
+        console.error("Ошибка чтения с FTP:", err);
+        return { incidents: [] }; 
     } finally {
         client.close();
+        // Обязательно убираем за собой мусор
+        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath); 
     }
 }
 
 async function saveDbData(dataObject) {
     const client = new Client();
-    client.ftp.verbose = true; //
+    const tempFilePath = path.join('/tmp', `db_${crypto.randomUUID()}.json`);
+    
     try {
         const jsonString = JSON.stringify(dataObject, null, 2);
         fs.writeFileSync(tempFilePath, jsonString);
@@ -41,19 +45,17 @@ async function saveDbData(dataObject) {
         
         try {
             await client.remove(REMOTE_FILE_PATH);
-            console.log("Старый db.json удален.");
         } catch (e) {
-            console.log("Файл не удален (возможно, его еще нет).");
+            // Игнорируем, если файла еще нет
         }
 
-        // Грузим по абсолютному пути
         await client.uploadFrom(tempFilePath, REMOTE_FILE_PATH);
-        console.log("✅ Данные успешно записаны на FTP!");
     } catch (err) {
-        console.error("❌ Ошибка записи на FTP:", err);
-        throw err; 
+        console.error("Ошибка записи на FTP:", err);
+        throw err;
     } finally {
         client.close();
+        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
     }
 }
 
