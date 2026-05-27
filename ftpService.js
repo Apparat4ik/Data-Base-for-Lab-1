@@ -1,23 +1,22 @@
 const { Client } = require("basic-ftp");
 const { Readable, Writable } = require("stream");
 
-// Настройки берем из переменных окружения
 const ftpConfig = {
     host: process.env.FTP_HOST,
     user: process.env.FTP_USER,
     password: process.env.FTP_PASSWORD,
-    secure: false 
+    secure: false
 };
 
-// Функция для получения данных
+const FTP_DIR = "/files"; 
+
 async function getDbData() {
     const client = new Client();
     try {
         await client.access(ftpConfig);
-        await client.cd("/files");
-        let data = "";
+        await client.cd(FTP_DIR);
         
-        // Создаем поток для записи в переменную
+        let data = "";
         const writable = new Writable({
             write(chunk, encoding, callback) {
                 data += chunk.toString();
@@ -25,22 +24,21 @@ async function getDbData() {
             }
         });
 
-        await client.downloadTo(writable, "db.json"); 
+        await client.downloadTo(writable, "db.json");
         return JSON.parse(data);
     } catch (err) {
         console.error("Ошибка чтения с FTP:", err);
-        return { incidents: [] };
+        throw new Error(`Ошибка скачивания базы с FTP: ${err.message}`);
     } finally {
         client.close();
     }
 }
 
-// Функция для сохранения данных
 async function saveDbData(dataObject) {
     const client = new Client();
     try {
         await client.access(ftpConfig);
-        await client.cd("/files");
+        await client.cd(FTP_DIR);
         
         const jsonString = JSON.stringify(dataObject, null, 2);
         const readable = Readable.from([jsonString]);
@@ -48,7 +46,7 @@ async function saveDbData(dataObject) {
         await client.uploadFrom(readable, "db.json");
     } catch (err) {
         console.error("Ошибка записи на FTP:", err);
-        throw err;
+        throw new Error(`Ошибка записи на FTP: ${err.message}`);
     } finally {
         client.close();
     }

@@ -5,8 +5,8 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 const sendMail = (subject, text) => {
     resend.emails.send({
-        from: 'onboarding@resend.dev', // Дефолтный отправитель для бесплатных аккаунтов
-        to: 'apparat.inc45@gmail.com', // Укажи почту, на которую регистрировал Resend!
+        from: 'onboarding@resend.dev',
+        to: 'apparat.inc45@gmail.com',
         subject: subject,
         text: text
     })
