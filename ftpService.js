@@ -1,5 +1,6 @@
 const { Client } = require("basic-ftp");
-const { Readable, Writable } = require("stream");
+const fs = require("fs");
+const path = require("path");
 
 const ftpConfig = {
     host: process.env.FTP_HOST,
@@ -8,7 +9,10 @@ const ftpConfig = {
     secure: false
 };
 
-const FTP_DIR = "/files"; 
+
+const FTP_DIR = "ftp/files"; 
+
+const tempFilePath = path.join('/tmp', 'db.json'); 
 
 async function getDbData() {
     const client = new Client();
@@ -16,19 +20,16 @@ async function getDbData() {
         await client.access(ftpConfig);
         await client.cd(FTP_DIR);
         
-        let data = "";
-        const writable = new Writable({
-            write(chunk, encoding, callback) {
-                data += chunk.toString();
-                callback();
-            }
-        });
-
-        await client.downloadTo(writable, "db.json");
+        // Скачиваем файл с FTP на диск Render
+        await client.downloadTo(tempFilePath, "db.json");
+        
+        // Читаем скачанный файл
+        const data = fs.readFileSync(tempFilePath, "utf8");
         return JSON.parse(data);
     } catch (err) {
         console.error("Ошибка чтения с FTP:", err);
-        throw new Error(`Ошибка скачивания базы с FTP: ${err.message}`);
+        // Если файла еще нет, отдаем пустую структуру, чтобы сайт не падал
+        return { incidents: [] };
     } finally {
         client.close();
     }
@@ -37,16 +38,18 @@ async function getDbData() {
 async function saveDbData(dataObject) {
     const client = new Client();
     try {
+
+        const jsonString = JSON.stringify(dataObject, null, 2);
+        fs.writeFileSync(tempFilePath, jsonString);
+
         await client.access(ftpConfig);
         await client.cd(FTP_DIR);
         
-        const jsonString = JSON.stringify(dataObject, null, 2);
-        const readable = Readable.from([jsonString]);
 
-        await client.uploadFrom(readable, "db.json");
+        await client.uploadFrom(tempFilePath, "db.json");
     } catch (err) {
         console.error("Ошибка записи на FTP:", err);
-        throw new Error(`Ошибка записи на FTP: ${err.message}`);
+        throw err;
     } finally {
         client.close();
     }
