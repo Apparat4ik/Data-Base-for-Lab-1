@@ -44,6 +44,8 @@ app.post('/incidents', async (req, res) => {
             id: Math.random().toString(36).substring(2, 11) 
         };
         
+        console.log("Пытаемся сохранить инцидент:", newIncident);
+
         if (!db.incidents) db.incidents = [];
         db.incidents.push(newIncident);
         

@@ -1,7 +1,5 @@
 const { Client } = require("basic-ftp");
-const fs = require("fs");
-const path = require("path");
-const crypto = require("crypto");
+const { Readable, Writable } = require("stream");
 
 const ftpConfig = {
     host: process.env.FTP_HOST,
@@ -14,48 +12,54 @@ const REMOTE_FILE_PATH = "/files/db.json";
 
 async function getDbData() {
     const client = new Client();
-    // Генерируем уникальное имя файла для каждого запроса
-    const tempFilePath = path.join('/tmp', `db_${crypto.randomUUID()}.json`); 
-    
     try {
         await client.access(ftpConfig);
-        await client.downloadTo(tempFilePath, REMOTE_FILE_PATH);
         
-        const data = fs.readFileSync(tempFilePath, "utf8");
+        let data = "";
+        // Читаем данные прямо в оперативную память
+        const writable = new Writable({
+            write(chunk, encoding, callback) {
+                data += chunk.toString();
+                callback();
+            }
+        });
+        
+        await client.downloadTo(writable, REMOTE_FILE_PATH);
         return JSON.parse(data);
     } catch (err) {
-        console.error("Ошибка чтения с FTP:", err);
-        return { incidents: [] }; 
+        console.error("❌ Ошибка чтения с FTP:", err);
+        return { incidents: [] };
     } finally {
         client.close();
-        // Обязательно убираем за собой мусор
-        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath); 
     }
 }
 
 async function saveDbData(dataObject) {
     const client = new Client();
-    const tempFilePath = path.join('/tmp', `db_${crypto.randomUUID()}.json`);
-    
     try {
         const jsonString = JSON.stringify(dataObject, null, 2);
-        fs.writeFileSync(tempFilePath, jsonString);
+        
+        // Превращаем JSON-строку в поток для прямой отправки
+        const readable = Readable.from([jsonString]);
 
         await client.access(ftpConfig);
         
         try {
             await client.remove(REMOTE_FILE_PATH);
         } catch (e) {
-            // Игнорируем, если файла еще нет
+            // Игнорируем, если удалять нечего
         }
 
-        await client.uploadFrom(tempFilePath, REMOTE_FILE_PATH);
+        // Грузим поток из памяти прямо на FTP
+        await client.uploadFrom(readable, REMOTE_FILE_PATH);
+        
+        // Эта строчка покажет в логах Render, сколько РЕАЛЬНО байт мы отправили
+        console.log(`✅ На FTP успешно отправлено ${Buffer.byteLength(jsonString)} байт`);
     } catch (err) {
-        console.error("Ошибка записи на FTP:", err);
+        console.error("❌ Ошибка записи на FTP:", err);
         throw err;
     } finally {
         client.close();
-        if (fs.existsSync(tempFilePath)) fs.unlinkSync(tempFilePath);
     }
 }
 
