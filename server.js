@@ -51,7 +51,7 @@ app.post('/incidents', async (req, res) => {
         
         await saveDbData(db);
         
-        sendMail('🚨 Добавлен новый инцидент', `В систему добавлен инцидент:\nОписание: ${newIncident.title}\nУровень угрозы: ${newIncident.severity}`);
+        await sendMail('🚨 Добавлен новый инцидент', `В систему добавлен инцидент:\nОписание: ${newIncident.title}\nУровень угрозы: ${newIncident.severity}`);
         
         res.status(201).json(newIncident);
     } catch (error) {
@@ -69,7 +69,7 @@ app.put('/incidents/:id', async (req, res) => {
             db.incidents[index] = { ...db.incidents[index], ...req.body };
             await saveDbData(db);
             
-            sendMail('🔄 Изменение статуса', `Статус инцидента №${req.params.id} изменен на: ${req.body.status}`);
+            await sendMail('🔄 Изменение статуса', `Статус инцидента №${req.params.id} изменен на: ${req.body.status}`);
             res.json(db.incidents[index]);
         } else {
             res.status(404).json({ error: "Инцидент не найден" });
@@ -89,7 +89,7 @@ app.delete('/incidents/:id', async (req, res) => {
         
         if (db.incidents.length < initialLength) {
             await saveDbData(db);
-            sendMail('🗑️ Удаление инцидента', `Инцидент с ID ${req.params.id} был удален из базы данных.`);
+            await sendMail('🗑️ Удаление инцидента', `Инцидент с ID ${req.params.id} был удален из базы данных.`);
             res.status(200).json({});
         } else {
             res.status(404).json({ error: "Инцидент не найден" });
