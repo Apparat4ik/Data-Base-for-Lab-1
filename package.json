@@ -5,6 +5,10 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "basic-ftp": "^6.0.1",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
     "json-server": "^0.17.4",
     "nodemailer": "^8.0.7",
     "resend": "^6.12.3"
