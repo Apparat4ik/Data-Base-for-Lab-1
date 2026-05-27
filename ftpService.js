@@ -24,7 +24,7 @@ async function getDbData() {
             }
         });
 
-        await client.downloadTo(writable, "db.json"); 
+        await client.downloadTo(writable, "ftp/files/db.json"); 
         return JSON.parse(data);
     } catch (err) {
         console.error("Ошибка чтения с FTP:", err);
@@ -43,7 +43,7 @@ async function saveDbData(dataObject) {
         const jsonString = JSON.stringify(dataObject, null, 2);
         const readable = Readable.from([jsonString]);
 
-        await client.uploadFrom(readable, "db.json");
+        await client.uploadFrom(readable, "ftp/files/db.json");
     } catch (err) {
         console.error("Ошибка записи на FTP:", err);
         throw err;
