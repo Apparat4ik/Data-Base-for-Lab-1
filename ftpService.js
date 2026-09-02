@@ -1,63 +1,31 @@
-const { Client } = require("basic-ftp");
-const { Readable, Writable } = require("stream");
+const fs = require('fs').promises;
+const path = require('path');
 
-const ftpConfig = {
-    host: process.env.FTP_HOST,
-    port: 6365,
-    user: process.env.FTP_USER,
-    password: process.env.FTP_PASSWORD,
-    secure: false
-};
 
-const REMOTE_FILE_PATH = "/files/db.json"; 
+const DB_FILE_PATH = path.join(__dirname, 'db.json');
 
 async function getDbData() {
-    const client = new Client();
     try {
-        await client.access(ftpConfig);
-        
-        let data = "";
-        const writable = new Writable({
-            write(chunk, encoding, callback) {
-                data += chunk.toString();
-                callback();
-            }
-        });
-        
-        await client.downloadTo(writable, REMOTE_FILE_PATH);
+        const data = await fs.readFile(DB_FILE_PATH, 'utf-8');
         return JSON.parse(data);
     } catch (err) {
-        console.error("Ошибка чтения с FTP:", err);
+        if (err.code === 'ENOENT') {
+            console.log("Файл db.json не найден, будет создан новый при сохранении.");
+            return { incidents: [] };
+        }
+        console.error("Ошибка чтения локального файла:", err);
         return { incidents: [] };
-    } finally {
-        client.close();
     }
 }
 
 async function saveDbData(dataObject) {
-    const client = new Client();
     try {
         const jsonString = JSON.stringify(dataObject, null, 2);
-        
-        // Превращаем JSON-строку в поток для прямой отправки
-        const readable = Readable.from([jsonString]);
-
-        await client.access(ftpConfig);
-        
-        try {
-            await client.remove(REMOTE_FILE_PATH);
-        } catch (e) {
-        }
-
-        // Грузим поток из памяти прямо на FTP
-        await client.uploadFrom(readable, REMOTE_FILE_PATH);
-        
-        console.log(`На FTP успешно отправлено ${Buffer.byteLength(jsonString)} байт`);
+        await fs.writeFile(DB_FILE_PATH, jsonString, 'utf-8');
+        console.log("Данные успешно сохранены в db.json");
     } catch (err) {
-        console.error("Ошибка записи на FTP:", err);
+        console.error("Ошибка записи в локальный файл:", err);
         throw err;
-    } finally {
-        client.close();
     }
 }
 
